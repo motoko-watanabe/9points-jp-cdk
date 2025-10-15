@@ -1,20 +1,33 @@
 #!/usr/bin/env node
 import * as cdk from 'aws-cdk-lib';
-import { NinepointsCdkStack } from '../lib/ninepoints-cdk-stack';
+import { App } from 'aws-cdk-lib'
+import { NinepointsStack } from '../lib/ninepoints-cdk-stack';
+import { NinepointsEdgeStack } from '../lib/ninepoints-edge-stack';
+import { NinepointsMainStack } from '../lib/ninepoints-main-stack';
 
-const app = new cdk.App();
-new NinepointsCdkStack(app, 'NinepointsCdkStack', {
-  /* If you don't specify 'env', this stack will be environment-agnostic.
-   * Account/Region-dependent features and context lookups will not work,
-   * but a single synthesized template can be deployed anywhere. */
+const pjPrefix = "NinepointsCdk"
+const app = new App({
+  context: {
+    acmCertificateArn: "arn:aws:acm:us-east-1:115111881587:certificate/4019d41c-dbdd-482a-94c8-c1d799e147b3",
+    '@aws-cdk/core:crossRegionReferences': true
+  }
+})
 
-  /* Uncomment the next line to specialize this stack for the AWS Account
-   * and Region that are implied by the current CLI configuration. */
-  // env: { account: process.env.CDK_DEFAULT_ACCOUNT, region: process.env.CDK_DEFAULT_REGION },
+// ----------------------- Load context variables ------------------------------
+// This context need to be specified in args
+const argContext = 'environment'
+const envKey = app.node.tryGetContext(argContext)
+if (envKey == undefined)
+  throw new Error(`Please specify environment with context option. ex) cdk deploy -c ${argContext}=dev`)
 
-  /* Uncomment the next line if you know exactly what Account and Region you
-   * want to deploy the stack to. */
-  // env: { account: '123456789012', region: 'us-east-1' },
+/*new NinepointsStack(app, 'NinepointsCdkStack', {
+  env: { region: 'us-east-1' } // Lambda@Edge 用に us-east-1 指定
+});*/
 
-  /* For more information, see https://docs.aws.amazon.com/cdk/latest/guide/environments.html */
+const edgeStack = new NinepointsEdgeStack(app, 'NinepointsEdgeCdkStack', {
+  env: { region: 'us-east-1' } // Lambda@Edge 用に us-east-1 指定
+});
+
+new NinepointsMainStack(app, 'NinepointsMainCdkStack', {
+  env: { region: 'ap-northeast-1' }, // CloudFront 用に ap-northeast-1 指定
 });
